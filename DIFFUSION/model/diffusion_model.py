@@ -113,8 +113,8 @@ class DenoisingDiffusion(pl.LightningModule):
 
         sampled_t = utils.sample_discrete_features(probX=probX, probE=probE, node_mask=node_mask)
 
-        X_t = F.one_hot(sampled_t.X, num_classes=576)
-        E_t = F.one_hot(sampled_t.E, num_classes=576)
+        X_t = F.one_hot(sampled_t.X, num_classes=1024)
+        E_t = F.one_hot(sampled_t.E, num_classes=1024)
         bs, n, num_attr_X, one_hot_dim_X = X_t.shape
         X_t = X_t.view(bs, n, num_attr_X * one_hot_dim_X)
         bs, _, _, num_attr_E, one_hot_dim_E = E_t.shape
@@ -221,18 +221,18 @@ class DenoisingDiffusion(pl.LightningModule):
             n = n_nodes[i]
             node_types = X[i, :n].cpu()
             edge_types = E[i, :n, :n].cpu()
-            X_encodings = node_types.size(1) // 576
-            E_encodings = edge_types.size(2) // 576
+            X_encodings = node_types.size(1) // 1024
+            E_encodings = edge_types.size(2) // 1024
 
-            if torch.all(node_types.view(n, X_encodings, 576) == 0):
+            if torch.all(node_types.view(n, X_encodings, 1024) == 0):
                 node_types = torch.full((n, X_encodings), -1, dtype=torch.int64)
             else:
-                node_types = node_types.view(n, X_encodings, 576).argmax(dim=-1)
+                node_types = node_types.view(n, X_encodings, 1024).argmax(dim=-1)
 
-            if torch.all(edge_types.view(n, n, E_encodings, 576) == 0):
+            if torch.all(edge_types.view(n, n, E_encodings, 1024) == 0):
                 edge_types = torch.full((n, n, E_encodings), -1, dtype=torch.int64)
             else:
-                edge_types = edge_types.view(n, n, E_encodings, 576).argmax(dim=-1)
+                edge_types = edge_types.view(n, n, E_encodings, 1024).argmax(dim=-1)
 
             graph = [node_types, edge_types]
             graph_list.append(graph)
@@ -288,8 +288,8 @@ class DenoisingDiffusion(pl.LightningModule):
         assert ((prob_E.sum(dim=-1) - 1).abs() < 1e-4).all()
         sampled_s = utils.sample_discrete_features(prob_X, prob_E, node_mask=node_mask)
 
-        X_s = F.one_hot(sampled_s.X, num_classes=576).float()
-        E_s = F.one_hot(sampled_s.E, num_classes=576).float()
+        X_s = F.one_hot(sampled_s.X, num_classes=1024).float()
+        E_s = F.one_hot(sampled_s.E, num_classes=1024).float()
         bs, n, num_attr_X, one_hot_dim_X = X_s.shape
         X_s = X_s.view(bs, n, num_attr_X * one_hot_dim_X)
         bs, _, _, num_attr_E, one_hot_dim_E = E_s.shape

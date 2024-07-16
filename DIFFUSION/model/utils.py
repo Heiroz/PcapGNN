@@ -224,8 +224,8 @@ def sample_discrete_features(probX, probE, node_mask):
     probX = probX.reshape(bs * n, -1)       # (bs * n, dx_out)
 
     # Sample X
-    num_attr_X = probX.shape[-1] // 576
-    reshaped_probX = probX.view(bs * n * num_attr_X, 576)
+    num_attr_X = probX.shape[-1] // 1024
+    reshaped_probX = probX.view(bs * n * num_attr_X, 1024)
     X_t = reshaped_probX.multinomial(1)
     X_t = X_t.view(bs, n, num_attr_X)
 
@@ -239,8 +239,8 @@ def sample_discrete_features(probX, probE, node_mask):
 
     probE = probE.reshape(bs * n * n, -1)    # (bs * n * n, de_out)
     # Sample E
-    num_attr_E = probE.shape[-1] // 576
-    reshaped_probE = probE.view(bs * n * n * num_attr_E, 576)
+    num_attr_E = probE.shape[-1] // 1024
+    reshaped_probE = probE.view(bs * n * n * num_attr_E, 1024)
     E_t = reshaped_probE.multinomial(1)
     E_t = E_t.view(bs, n, n, num_attr_E)
 

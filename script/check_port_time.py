@@ -1,6 +1,6 @@
 from scapy.all import rdpcap
 from collections import Counter
-index_num = 576
+index_num = 1024
 def extract_ports_from_pcap(file_path):
     """
     读取PCAP文件并提取所有合法的端口号。

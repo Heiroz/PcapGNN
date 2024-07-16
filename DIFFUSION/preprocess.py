@@ -303,7 +303,7 @@ def node_attr(G):
 def onehot_encode(n_attr, attr_tensor):
     one_hot_encoded_attrs = []
     for i in range(n_attr):
-        one_hot = F.one_hot(attr_tensor[:, i], num_classes=576).float()
+        one_hot = F.one_hot(attr_tensor[:, i], num_classes=1024).float()
         one_hot_encoded_attrs.append(one_hot)
     encoded_attr_tensor = torch.cat(one_hot_encoded_attrs, dim=1)
     return encoded_attr_tensor
