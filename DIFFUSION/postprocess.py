@@ -70,7 +70,7 @@ def construct_table(sample_graphs, filename, port_index_mapping_file, timestamp_
 
         for i in range(n):
             src_ip = ".".join(map(str, node_attrs[i, :4].tolist()))  # 前四个值为源IP地址
-            src_port = node_attrs[i, 4]  # 第五个值为源端口
+            src_port = node_attrs[i, 4].item()  # 第五个值为源端口
 
             for j in range(n):
                 if i != j:
@@ -83,7 +83,7 @@ def construct_table(sample_graphs, filename, port_index_mapping_file, timestamp_
                     
                     # 将dst_ip和dst_port使用node_attrs[j]中的数据
                     dst_ip = ".".join(map(str, node_attrs[j, :4].tolist()))  # 前四个值为目的IP地址
-                    dst_port = node_attrs[j, 4]  # 第五个值为目的端口
+                    dst_port = node_attrs[j, 4].item()  # 第五个值为目的端口
 
                     # 检查src_port和dst_port是否在端口映射中
                     if src_port not in port_index_mapping or dst_port not in port_index_mapping:
@@ -94,13 +94,13 @@ def construct_table(sample_graphs, filename, port_index_mapping_file, timestamp_
                         continue
 
                     # 将端口索引映射回原始端口号
-                    src_port = port_index_mapping[src_port]
-                    dst_port = port_index_mapping[dst_port]
+                    src_port_mapped = port_index_mapping[src_port]
+                    dst_port_mapped = port_index_mapping[dst_port]
 
                     # 将时间戳索引映射回原始时间戳
                     timestamp = timestamp_index_mapping[timestamp_index]
 
-                    row = [src_ip, dst_ip, src_port, dst_port, protocol, pkt_count, timestamp]
+                    row = [src_ip, dst_ip, src_port_mapped, dst_port_mapped, protocol, pkt_count, timestamp]
                     all_tables.append(row)
 
     columns = ['src_ip', 'dst_ip', 'src_port', 'dst_port', 'protocol', 'pkt_count', 'timestamp']

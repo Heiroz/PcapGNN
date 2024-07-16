@@ -25,8 +25,8 @@ class DenoisingDiffusion(pl.LightningModule):
         self.model = GraphTransformer(
             n_layers=6,
             input_dims=input_dims,
-            hidden_mlp_dims={'X': 576, 'E': 128, 'y': 128},
-            hidden_dims={'dx': 576, 'de': 64, 'dy': 64, 'n_head': 8, 'dim_ffX': 576, 'dim_ffE': 128, 'dim_ffy': 128},
+            hidden_mlp_dims={'X': 256 * 8, 'E': 128 * 8, 'y': 128},
+            hidden_dims={'dx': 256 * 8, 'de': 64 * 8, 'dy': 64, 'n_head': 8, 'dim_ffX': 256 * 8, 'dim_ffE': 128 * 8, 'dim_ffy': 128},
             output_dims=output_dims,
             act_fn_in=nn.ReLU(),
             act_fn_out=nn.ReLU()
@@ -135,10 +135,10 @@ class DenoisingDiffusion(pl.LightningModule):
 
     def on_train_epoch_end(self):
         if self.current_epoch != 39:
-            pass
+            return
         sample_graphs = []
         id = 0
-        samples_left_to_generate = 10
+        samples_left_to_generate = 100
         samples_left_to_save = 3
         chains_left_to_save = 2
         while samples_left_to_generate > 0:

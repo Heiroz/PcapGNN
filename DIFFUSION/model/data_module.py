@@ -13,7 +13,7 @@ class GraphDataset(Dataset):
         return self.data[idx]
 
 class GraphDataModule(pl.LightningDataModule):
-    def __init__(self, train_data, batch_size=32, num_workers=20):
+    def __init__(self, train_data, batch_size=32, num_workers=70):
         super().__init__()
         self.train_data = train_data
         self.batch_size = batch_size

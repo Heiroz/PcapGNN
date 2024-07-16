@@ -28,6 +28,7 @@ def extract_time_intervals_from_pcap(file_path):
     """
     获取PCAP文件中数据包的时间范围，并将时间戳映射为区间索引。
     :param file_path: str, PCAP文件路径
+    :param index_num: int, 索引的数量
     :return: list, 包含所有数据包时间戳对应的区间索引
     """
     packets = rdpcap(file_path)
@@ -39,7 +40,10 @@ def extract_time_intervals_from_pcap(file_path):
 
     index_mapping = []
     for timestamp in timestamps:
-        index = int((timestamp - min_time) // interval_size)
+        # 计算区间索引，保证从1开始连续增长到index_num
+        interval_index = int((timestamp - min_time) / interval_size) + 1
+        # 确保索引在1到index_num之间
+        index = max(1, min(interval_index, index_num))
         index_mapping.append(index)
 
     return index_mapping, min_time, max_time
