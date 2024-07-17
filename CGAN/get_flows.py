@@ -113,7 +113,7 @@ def map_time_to_index(time, time_index_mapping):
     for time_interval, index in time_index_mapping.items():
         if time_interval[0] <= time <= time_interval[1]:
             return index
-    raise ValueError(f"Time {time} does not fall into any interval in the mapping.")
+    return 1
 
 
 def get_flows(filename):
@@ -222,6 +222,7 @@ def analyze_flows(flows):
             pkt_len = int(pkt['pkt_len'])
             
             pkt_tensor = torch.tensor([tos, ttl, _id, flag, time, pkt_len])
+
             pkt_tensor = onehot_encode(pkt_tensor, 1024)
 
             remaining_features.append(pkt_tensor)

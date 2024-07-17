@@ -1,6 +1,6 @@
 from scapy.all import rdpcap
 from collections import Counter
-index_num = 1024
+index_num = 1023
 def extract_ports_from_pcap(file_path):
     """
     读取PCAP文件并提取所有合法的端口号。
@@ -41,7 +41,7 @@ def extract_time_intervals_from_pcap(file_path):
     index_mapping = []
     for timestamp in timestamps:
         # 计算区间索引，保证从1开始连续增长到index_num
-        interval_index = int((timestamp - min_time) / interval_size) + 1
+        interval_index = int((timestamp - min_time) / interval_size)
         # 确保索引在1到index_num之间
         index = max(1, min(interval_index, index_num))
         index_mapping.append(index)
