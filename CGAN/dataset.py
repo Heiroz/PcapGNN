@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 class FlowDataset(Dataset):
     def __init__(self, flow_data):
@@ -24,8 +25,8 @@ def collate_fn(batch):
     
     return batch_flow_vectors, batch_remaining_features
 
-def get_data_loader(flow_data, batch_size=64):
+def get_data_loader(flow_data, batch_size, world_size, rank):
     dataset = FlowDataset(flow_data)
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
+    sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank)
+    data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, collate_fn=collate_fn, num_workers=70)
     return data_loader
-

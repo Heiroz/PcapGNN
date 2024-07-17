@@ -1,4 +1,8 @@
+import os
 import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp
+from torch.nn.parallel import DistributedDataParallel as DDP
 from trainer import CGANTrainer
 from get_flows import get_flows
 from dataset import get_data_loader
@@ -11,8 +15,13 @@ def get_num_attributes(flows):
     num_output = sample_flow['remaining_features'].shape[1]
     return num_condition, num_output
 
-def main():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def main(rank, world_size):
+    os.environ['MASTER_ADDR'] = '127.0.0.1'
+    os.environ['MASTER_PORT'] = '29500'
+
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    device = torch.device(f'cuda:{rank}')
+
     flows, start_time, num_pkts = get_flows('caida_small.pcap')
     
     condition_dim, output_dim = get_num_attributes(flows)
@@ -22,12 +31,10 @@ def main():
     generator = Generator(noisy_size, output_dim, condition_dim).to(device)
     discriminator = Discriminator(output_dim, condition_dim).to(device)
 
-    # 使用 DataParallel 包装模型
-    if torch.cuda.device_count() > 1:
-        generator = torch.nn.DataParallel(generator)
-        discriminator = torch.nn.DataParallel(discriminator)
+    generator = DDP(generator, device_ids=[rank])
+    discriminator = DDP(discriminator, device_ids=[rank])
 
-    data_loader = get_data_loader(flows, batch_size=1)
+    data_loader = get_data_loader(flows, batch_size=64, world_size=world_size, rank=rank)
 
     trainer = CGANTrainer(
         generator=generator,
@@ -40,5 +47,8 @@ def main():
 
     trainer.train()
 
+    dist.destroy_process_group()
+
 if __name__ == "__main__":
-    main()
+    world_size = 6
+    mp.spawn(main, args=(world_size,), nprocs=world_size, join=True)
