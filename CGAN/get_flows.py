@@ -118,8 +118,8 @@ def map_time_to_index(time, time_index_mapping):
 
 def get_flows(filename):
     flows = extract_pcap_info(filename)
-    flow_analysis = analyze_flows(flows)
-    return flow_analysis
+    flow_analysis, start_time, num_pkts = analyze_flows(flows)
+    return flow_analysis, start_time, num_pkts
 
 
 def ip_to_features(ip):
@@ -193,7 +193,7 @@ def analyze_flows(flows):
         protocol = int(flow_key[10])
         protocol = torch.tensor(protocol, dtype=torch.int)
 
-        time = int(min(pkt['time'] for pkt in packets) * time_multiplier)
+        start_time = int(min(pkt['time'] for pkt in packets) * time_multiplier)
 
         num_packets = len(packets)
 
@@ -235,4 +235,4 @@ def analyze_flows(flows):
 
         flow_analysis.append(flow_info)
 
-    return flow_analysis
+    return flow_analysis, start_time, num_packets

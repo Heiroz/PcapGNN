@@ -11,7 +11,7 @@ def get_num_attributes(flows):
     return num_condition, num_output
 
 def main():
-    flows = get_flows('caida_small.pcap')
+    flows, start_time, num_pkts = get_flows('caida_small.pcap')
     
     condition_dim, output_dim = get_num_attributes(flows)
     noisy_size = 1024 * 8
