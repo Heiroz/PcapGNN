@@ -266,11 +266,6 @@ def map_ports_to_indices(G, port_attrs, port_index_mapping):
             nx.set_node_attributes(G, {node: {'port': random_port_index}})
             invalid_mappings.append((node, port))
     
-    # if invalid_mappings:
-    #     print(f"Warning: Found invalid mappings for ports:")
-    #     for node, port in invalid_mappings:
-    #         print(f"Node {node}: Port {port} (assigned random index {updated_port_attrs[node]})")
-    
     return updated_port_attrs
 
 

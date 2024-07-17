@@ -48,6 +48,21 @@ def extract_time_intervals_from_pcap(file_path):
 
     return index_mapping, min_time, max_time
 
+def extract_ids_from_pcap(file_path):
+    """
+    读取PCAP文件并提取所有合法的IP包ID。
+    :param file_path: str, PCAP文件路径
+    :return: list, 包含所有合法IP包ID的列表
+    """
+    packets = rdpcap(file_path)
+    ids = set()
+
+    for packet in packets:
+        if packet.haslayer('IP'):
+            ids.add(packet['IP'].id)
+
+    return list(ids)
+
 def save_to_file(data, output_file):
     """
     将数据保存到文件中。
@@ -62,7 +77,8 @@ if __name__ == "__main__":
     file_path = 'caida_small.pcap'  # 请替换为你的PCAP文件路径
     output_ports_file = 'output_ports.txt'
     output_time_intervals_file = 'output_time_intervals.txt'
-
+    output_ids_file = 'output_ids.txt'
+    
     # 提取端口信息并保存到文件
     ports = extract_ports_from_pcap(file_path)
     ports_data = [f"{idx} {port}" for idx, port in enumerate(ports, start=1)]
@@ -79,3 +95,9 @@ if __name__ == "__main__":
         time_intervals_data.append(f"{index} {start_time} {end_time}")
     save_to_file(time_intervals_data, output_time_intervals_file)
     print(f"Time intervals have been saved to {output_time_intervals_file}")
+
+    # 提取ID信息并保存到文件
+    ids = extract_ids_from_pcap(file_path)
+    ids_data = [f"{idx} {id}" for idx, id in enumerate(ids, start=1)]
+    save_to_file(ids_data, output_ids_file)
+    print(f"IDs have been saved to {output_ids_file}")

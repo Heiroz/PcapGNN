@@ -3,45 +3,128 @@ from collections import defaultdict
 from scapy.all import rdpcap, IP, TCP, UDP
 import pandas as pd
 import random
+from decimal import Decimal
+import torch.nn.functional as F
+
+mappint_file_ids = 'output_ids.txt'
+mapping_file_ports = 'output_ports.txt'
+mapping_file_time = 'output_time_intervals.txt'
+
+one_hot_class = 1024
+
+
+def read_id_index_mapping(mapping_file):
+    """
+    从文件中读取第二个值映射到第一个值的映射关系。
+    :param mapping_file: str, 映射文件路径
+    :return: dict, 第二个值到第一个值的映射字典
+    """
+    id_index_mapping = {}
+    with open(mapping_file, 'r') as f:
+        for line in f:
+            parts = line.strip().split()
+            if len(parts) == 2:
+                index1 = int(parts[0])
+                index2 = int(parts[1])
+                id_index_mapping[index2] = index1
+    return id_index_mapping
+
+
+
+def map_id_to_index(id_val, id_index_mapping):
+    """
+    将id属性映射到正确的索引。
+    如果有非法的映射，随机选择一个值从1到1000中给它，并打印出警告信息。
+    
+    :param id_val: int, id值
+    :param id_index_mapping: dict, id到索引的映射字典
+    :return: int, 对应的索引值
+    """
+    if id_val in id_index_mapping:
+        return id_index_mapping[id_val]
+    else:
+        # 随机选择一个值从1到1000中给非法映射的id
+        random_id_index = random.randint(1, 1000)
+        print(f"Warning: Invalid ID mapping for ID {id_val}. Assigned random ID index {random_id_index}.")
+        return random_id_index
+
+
+
+def read_port_index_mapping(mapping_file):
+    """
+    从文件中读取第二个值映射到第一个值的映射关系。
+    :param mapping_file: str, 映射文件路径
+    :return: dict, 第二个值到第一个值的映射字典
+    """
+    port_index_mapping = {}
+    with open(mapping_file, 'r') as f:
+        for line in f:
+            parts = line.strip().split()
+            if len(parts) == 2:
+                index1 = int(parts[0])
+                index2 = int(parts[1])
+                port_index_mapping[index2] = index1
+    return port_index_mapping
+
+
+def map_port_to_index(port, port_index_mapping):
+    """
+    将端口属性映射到正确的索引。
+    如果有非法的映射，随机选择一个值从1到500中给它，并打印出警告信息。
+    
+    :param port: int, 端口号
+    :param port_index_mapping: dict, 端口号到索引的映射字典
+    :return: int, 对应的索引值
+    """
+    if port in port_index_mapping:
+        return port_index_mapping[port]
+    else:
+        # 随机选择一个值从1到500中给非法映射的端口
+        random_port_index = random.randint(1, 500)
+        print(f"Warning: Port {port} is not in the mapping. Assigning random index {random_port_index}.")
+        return random_port_index
+
+
+def read_time_index_mapping(mapping_file):
+    """
+    从文件中读取时间戳区间映射到索引的映射关系。
+    :param mapping_file: str, 映射文件路径
+    :return: dict, 时间戳区间映射到索引的映射字典
+    """
+    time_index_mapping = {}
+    with open(mapping_file, 'r') as f:
+        for line in f:
+            parts = line.strip().split()
+            if len(parts) == 3:
+                index = int(parts[0])
+                time1 = Decimal(parts[1])
+                time2 = Decimal(parts[2])
+                time_index_mapping[(time1, time2)] = index
+    return time_index_mapping
+
+
+def map_time_to_index(time, time_index_mapping):
+    """
+    将时间戳映射到正确的索引。
+    :param time: int, 时间戳
+    :param time_index_mapping: dict, 时间戳区间映射到索引的映射字典
+    :return: int, 对应的索引值
+    """
+    for time_interval, index in time_index_mapping.items():
+        if time_interval[0] <= time <= time_interval[1]:
+            return index
+    raise ValueError(f"Time {time} does not fall into any interval in the mapping.")
+
 
 def get_flows(filename):
     flows = extract_pcap_info(filename)
-    flow_analysis = analyze_flows_decode(flows)
+    flow_analysis = analyze_flows(flows)
     return flow_analysis
+
 
 def ip_to_features(ip):
     return [int(octet) for octet in ip.split('.')]
 
-
-def process_flow_data(file_path):
-    """
-    读取CSV文件并将每行数据转换为特征向量。
-    :param file_path: str, CSV文件路径
-    :return: torch.Tensor, 所有流量特征向量组成的张量
-    """
-    # 读取CSV文件
-    df = pd.read_csv(file_path)
-
-    # 初始化列表以存储所有流向量
-    flow_vectors = []
-
-    # 遍历每一行数据
-    for index, row in df.iterrows():
-        src_ip_features = ip_to_features(row['src_ip'])
-        dst_ip_features = ip_to_features(row['dst_ip'])
-        src_port = torch.tensor([0])
-        dst_port = torch.tensor([0])
-        protocol = torch.tensor([row['protocol']])
-        start_time = torch.tensor([random.random()])
-        
-        # 合并所有特征为一个向量
-        flow_vector = torch.cat([src_ip_features, dst_ip_features, src_port, dst_port, protocol, start_time])
-        flow_vectors.append(flow_vector)
-
-    # 转换为tensor
-    flow_vectors = torch.stack(flow_vectors)
-    
-    return flow_vectors
 
 
 def extract_pcap_info(pcap_file):
@@ -68,7 +151,7 @@ def extract_pcap_info(pcap_file):
                 'ttl': ip_layer.ttl,
                 'id': ip_layer.id,
                 'flag': int(ip_layer.flags),
-                'start_time': float(pkt.time),
+                'time': float(pkt.time),
                 'pkt_len': len(pkt),
             }
 
@@ -76,93 +159,72 @@ def extract_pcap_info(pcap_file):
 
     return flows
 
-def convert_to_binary_vector(value, bit_length=16):
-    binary_str = bin(value)[2:]
-    binary_str = binary_str.zfill(bit_length)
-    binary_vector = torch.tensor([int(bit) for bit in binary_str], dtype=torch.float32)
-    return binary_vector
 
-import torch
+def onehot_encode(n_attr, attr_tensor):
+    one_hot_encoded_attrs = []
+    for i in range(n_attr):
+        one_hot = F.one_hot(attr_tensor[:, i], num_classes=1024).float()
+        one_hot_encoded_attrs.append(one_hot)
+    encoded_attr_tensor = torch.cat(one_hot_encoded_attrs, dim=1)
+    return encoded_attr_tensor
+
 
 def analyze_flows(flows):
     flow_analysis = []
-    start_time_multiplier = 1  # 用于将start_time转换为整数的系数
+    time_multiplier = 1  # 用于将time转换为整数的系数
 
     for flow_key, packets in flows.items():
+
         # 将flow_key中的元素转换为整数
         src_ip_features = [int(val) for val in flow_key[:4]]
+        
         dst_ip_features = [int(val) for val in flow_key[4:8]]
+        
         src_port = int(flow_key[8])
+        port_index_mapping = read_port_index_mapping(mapping_file_ports)
+        src_port = map_port_to_index(src_port, port_index_mapping)
+        src_port = torch.tensor(src_port, dtype=torch.int)
+
         dst_port = int(flow_key[9])
+        port_index_mapping = read_port_index_mapping(mapping_file_ports)
+        dst_port = map_port_to_index(dst_port, port_index_mapping)
+        dst_port = torch.tensor(dst_port, dtype=torch.int)
+
         protocol = int(flow_key[10])
-        start_time = int(min(pkt['start_time'] for pkt in packets) * start_time_multiplier)
+        protocol = torch.tensor(protocol, dtype=torch.int)
+
+        time = int(min(pkt['time'] for pkt in packets) * time_multiplier)
+
         num_packets = len(packets)
 
         # 将所有字段连接在一起形成 flow_vector
-        flow_vector = torch.tensor(src_ip_features + dst_ip_features + [src_port, dst_port, protocol, start_time])
+        flow_vector = torch.tensor(src_ip_features + dst_ip_features + src_port + dst_port + protocol)
+        flow_vector = onehot_encode(11, flow_vector)
 
         remaining_features = []
 
         for pkt in packets:
+
             tos = int(pkt['tos'])
+
             ttl = int(pkt['ttl'])
+
             _id = int(pkt['id'])
+            id_index_mapping = read_id_index_mapping(mappint_file_ids)
+            _id = map_id_to_index(_id, id_index_mapping)
+
             flag = int(pkt['flag'])
-            start_time = float(pkt['start_time']) * start_time_multiplier
+
+            time = float(pkt['time']) * time_multiplier
+            time_index_mapping = read_time_index_mapping(mapping_file_time)
+            time = map_time_to_index(time, time_index_mapping)
+
             pkt_len = int(pkt['pkt_len'])
+            
+            pkt_tensor = torch.tensor([tos, ttl, _id, flag, time, pkt_len])
+            pkt_tensor = onehot_encode(6, pkt_tensor)
 
-            remaining_features.append(torch.tensor([tos, ttl, _id, flag, start_time, pkt_len]))
-
-        remaining_features = torch.stack(remaining_features, dim=0)
-
-        flow_info = {
-            'flow_vector': flow_vector,
-            'remaining_features': remaining_features
-        }
-
-        flow_analysis.append(flow_info)
-
-    return flow_analysis
-
-
-def analyze_flows_decode(flows):
-    flow_analysis = []
-    bit_length = 32  # 定义固定长度的二进制序列
-    start_time_multiplier = 1  # 用于将start_time转换为整数的系数
-
-    for flow_key, packets in flows.items():
-        # 将flow_key中的元素转换为整数
-        src_ip_features = [int(val) for val in flow_key[:4]]
-        dst_ip_features = [int(val) for val in flow_key[4:8]]
-        src_port = int(flow_key[8])
-        dst_port = int(flow_key[9])
-        protocol = int(flow_key[10])
-        start_time = int(min(pkt['start_time'] for pkt in packets) * start_time_multiplier)
-        num_packets = int(len(packets))
-
-        # 将字段转换为二进制向量
-        src_ip_features = torch.cat([convert_to_binary_vector(val, bit_length) for val in src_ip_features])
-        dst_ip_features = torch.cat([convert_to_binary_vector(val, bit_length) for val in dst_ip_features])
-        src_port = convert_to_binary_vector(src_port, bit_length)
-        dst_port = convert_to_binary_vector(dst_port, bit_length)
-        protocol = convert_to_binary_vector(protocol, bit_length)
-        start_time = convert_to_binary_vector(start_time, bit_length)
-        num_packets = torch.tensor([num_packets])
-        # print(start_time.size())
-        # 将所有二进制序列连接在一起形成 flow_vector
-        flow_vector = torch.cat([src_ip_features, dst_ip_features, src_port, dst_port, protocol, start_time])
-
-        remaining_features = []
-
-        for pkt in packets:
-            tos = convert_to_binary_vector(int(pkt['tos']), bit_length)
-            ttl = convert_to_binary_vector(int(pkt['ttl']), bit_length)
-            _id = convert_to_binary_vector(int(pkt['id']), bit_length)
-            flag = convert_to_binary_vector(int(pkt['flag']), bit_length)
-            start_time = convert_to_binary_vector(int(float(pkt['start_time']) * start_time_multiplier), bit_length)
-            pkt_len = convert_to_binary_vector(int(pkt['pkt_len']), bit_length)
-
-            remaining_features.append(torch.cat([tos, ttl, _id, flag, start_time, pkt_len]))
+            remaining_features.append(pkt_tensor)
 
         remaining_features = torch.stack(remaining_features, dim=0)
 

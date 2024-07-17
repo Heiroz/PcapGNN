@@ -14,7 +14,7 @@ def main():
     flows = get_flows('caida_small.pcap')
     
     condition_dim, output_dim = get_num_attributes(flows)
-    noisy_size = 1024
+    noisy_size = 1024 * 8
     num_epochs = 200
     generator = Generator(noisy_size, output_dim, condition_dim)
     discriminator = Discriminator(output_dim, condition_dim)
