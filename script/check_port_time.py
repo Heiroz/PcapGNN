@@ -90,8 +90,8 @@ if __name__ == "__main__":
     interval_size = (max_time - min_time) / index_num
     time_intervals_data = []
     for index in set(index_mapping):
-        start_time = min_time + index * interval_size
-        end_time = min_time + (index + 1) * interval_size
+        start_time = min_time + (index - 1) * interval_size
+        end_time = min_time + index * interval_size
         time_intervals_data.append(f"{index} {start_time} {end_time}")
     save_to_file(time_intervals_data, output_time_intervals_file)
     print(f"Time intervals have been saved to {output_time_intervals_file}")

@@ -1,7 +1,7 @@
 from trainer import CGANTrainer
 from get_flows import get_flows
 from dataset import get_data_loader
-from generator import Generator, Generator_sigmoid
+from generator import Generator
 from discriminator import Discriminator
 
 def get_num_attributes(flows):

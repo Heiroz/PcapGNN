@@ -160,13 +160,11 @@ def extract_pcap_info(pcap_file):
     return flows
 
 
-def onehot_encode(n_attr, attr_tensor):
-    one_hot_encoded_attrs = []
-    for i in range(n_attr):
-        one_hot = F.one_hot(attr_tensor[:, i], num_classes=1024).float()
-        one_hot_encoded_attrs.append(one_hot)
-    encoded_attr_tensor = torch.cat(one_hot_encoded_attrs, dim=1)
-    return encoded_attr_tensor
+def onehot_encode(input_tensor, num_classes):
+    input_tensor = input_tensor.long()
+    one_hot_encoded = F.one_hot(input_tensor, num_classes=num_classes)
+    flattened_one_hot = one_hot_encoded.view(-1)
+    return flattened_one_hot
 
 
 def analyze_flows(flows):
@@ -177,29 +175,31 @@ def analyze_flows(flows):
 
         # 将flow_key中的元素转换为整数
         src_ip_features = [int(val) for val in flow_key[:4]]
-        
+        src_ip_features = torch.tensor(src_ip_features, dtype=torch.int)
+
         dst_ip_features = [int(val) for val in flow_key[4:8]]
+        dst_ip_features = torch.tensor(dst_ip_features, dtype=torch.int)
         
         src_port = int(flow_key[8])
         port_index_mapping = read_port_index_mapping(mapping_file_ports)
         src_port = map_port_to_index(src_port, port_index_mapping)
-        src_port = torch.tensor(src_port, dtype=torch.int)
+        src_port = torch.tensor(src_port, dtype=torch.int).unsqueeze(0)
 
         dst_port = int(flow_key[9])
         port_index_mapping = read_port_index_mapping(mapping_file_ports)
         dst_port = map_port_to_index(dst_port, port_index_mapping)
-        dst_port = torch.tensor(dst_port, dtype=torch.int)
+        dst_port = torch.tensor(dst_port, dtype=torch.int).unsqueeze(0)
 
         protocol = int(flow_key[10])
-        protocol = torch.tensor(protocol, dtype=torch.int)
+        protocol = torch.tensor(protocol, dtype=torch.int).unsqueeze(0)
 
         start_time = int(min(pkt['time'] for pkt in packets) * time_multiplier)
 
         num_packets = len(packets)
 
         # 将所有字段连接在一起形成 flow_vector
-        flow_vector = torch.tensor(src_ip_features + dst_ip_features + src_port + dst_port + protocol)
-        flow_vector = onehot_encode(11, flow_vector)
+        flow_vector = torch.cat([src_ip_features, dst_ip_features, src_port, dst_port, protocol])
+        flow_vector = onehot_encode(flow_vector, 1024)
 
         remaining_features = []
 
@@ -222,7 +222,7 @@ def analyze_flows(flows):
             pkt_len = int(pkt['pkt_len'])
             
             pkt_tensor = torch.tensor([tos, ttl, _id, flag, time, pkt_len])
-            pkt_tensor = onehot_encode(6, pkt_tensor)
+            pkt_tensor = onehot_encode(pkt_tensor, 1024)
 
             remaining_features.append(pkt_tensor)
 
