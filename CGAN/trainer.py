@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.optim as optim
 from decode import decode_tensor
 class CGANTrainer:
-    def __init__(self, generator, discriminator, data_loader, noisy_dim, num_epochs=50, lr=0.0002, beta1=0.5, beta2=0.999):
+    def __init__(self, generator, discriminator, data_loader, noisy_dim, 
+                 num_epochs=50, lr=0.0002, beta1=0.5, beta2=0.999):
         self.generator = generator
         self.discriminator = discriminator
         self.data_loader = data_loader

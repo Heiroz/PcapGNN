@@ -4,13 +4,13 @@ import math
 import torch.nn.functional as F
 
 class Generator(nn.Module):
-    def __init__(self, noisy_size, output_size, condition_size, hidden_size=512 * 16, num_layers=8, num_heads=8, dropout=0.1):
+    def __init__(self, noisy_size, output_size, condition_size, hidden_size=512 * 16, 
+                 num_layers=8, num_heads=8, dropout=0.1):
         super(Generator, self).__init__()
         self.noisy_size = noisy_size
         self.output_size = output_size
         self.condition_size = condition_size
         
-        # Transformer encoder layers
         encoder_layers = nn.TransformerEncoderLayer(
             d_model=noisy_size + condition_size,
             nhead=num_heads,
@@ -39,7 +39,6 @@ class PositionalEncoding(nn.Module):
         super(PositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=dropout)
         
-        # Compute positional encodings in log space
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float32).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2, dtype=torch.float32) * -(math.log(10000.0) / d_model))
