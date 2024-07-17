@@ -28,7 +28,6 @@ class CGANTrainer:
                 real_data = real_data.to(self.device)
                 condition_vector = condition_vector.to(self.device)
                 self.discriminator.zero_grad()
-                # Extract num_generated and reshape real_data
                 bs, num_generated, size = real_data.shape
                 labels_real = torch.ones(real_data.size(0) * real_data.size(1), 1, device=self.device)
                 # Generate fake data and reshape
@@ -46,18 +45,14 @@ class CGANTrainer:
                 real_data = real_data.reshape(-1, real_data.shape[2])
                 fake_data = fake_data.reshape(-1, fake_data.shape[2])
                 expanded_condition_vector = expanded_condition_vector.reshape(-1, expanded_condition_vector.shape[2])
-
                 output_real = self.discriminator(real_data, expanded_condition_vector)
-                # print(output_real)
 
                 output_fake = self.discriminator(fake_data.detach(), expanded_condition_vector)
                 loss_D_real = self.criterion(output_real, labels_real)
                 loss_D_fake = self.criterion(output_fake, labels_fake)
                 loss_D = loss_D_real + loss_D_fake
-
                 loss_D.backward()
                 self.optimizer_D.step()
-
                 self.generator.zero_grad()
 
                 # Re-generate fake data for generator update
@@ -70,7 +65,6 @@ class CGANTrainer:
                 fake_data = fake_data.reshape(-1, self.generator.output_size)
                 output_fake = self.discriminator(fake_data, expanded_condition_vector)
                 loss_G = self.criterion(output_fake, labels_real)
-
                 loss_G.backward()
                 self.optimizer_G.step()
 
