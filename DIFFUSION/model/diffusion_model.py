@@ -26,7 +26,8 @@ class DenoisingDiffusion(pl.LightningModule):
             n_layers=6,
             input_dims=input_dims,
             hidden_mlp_dims={'X': 256 * 8, 'E': 128 * 8, 'y': 128},
-            hidden_dims={'dx': 256 * 8, 'de': 64 * 8, 'dy': 64, 'n_head': 8, 'dim_ffX': 256 * 8, 'dim_ffE': 128 * 8, 'dim_ffy': 128},
+            hidden_dims={'dx': 256 * 8, 'de': 64 * 8, 'dy': 64, 'n_head': 8, 
+                         'dim_ffX': 256 * 8, 'dim_ffE': 128 * 8, 'dim_ffy': 128},
             output_dims=output_dims,
             act_fn_in=nn.ReLU(),
             act_fn_out=nn.ReLU()
@@ -135,7 +136,7 @@ class DenoisingDiffusion(pl.LightningModule):
 
     def on_train_epoch_end(self):
         if self.current_epoch != 39:
-            return
+            pass
         sample_graphs = []
         id = 0
         samples_left_to_generate = 100
@@ -165,7 +166,8 @@ class DenoisingDiffusion(pl.LightningModule):
         construct_table(sample_graphs, filename, 'port_index_mapping.txt', 'time_index_mapping.txt')
 
 
-    def sample_batch(self, batch_id: int, batch_size: int, keep_chain: int, number_chain_steps: int, save_final: int, num_nodes=None):
+    def sample_batch(self, batch_id: int, batch_size: int, keep_chain: int, 
+                     number_chain_steps: int, save_final: int, num_nodes=None):
         if num_nodes is None:
             n_nodes = self.node_dist.sample_n(batch_size, self.device)
         elif type(num_nodes) == int:
