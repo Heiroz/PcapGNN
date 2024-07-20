@@ -44,7 +44,7 @@ def map_id_to_index(id_val, id_index_mapping):
         return id_index_mapping[id_val]
     else:
         # 随机选择一个值从1到1000中给非法映射的id
-        random_id_index = random.randint(1, 1000)
+        random_id_index = random.randint(1, 500)
         print(f"Warning: Invalid ID mapping for ID {id_val}. Assigned random ID index {random_id_index}.")
         return random_id_index
 
@@ -166,6 +166,18 @@ def onehot_encode(input_tensor, num_classes):
     flattened_one_hot = one_hot_encoded.view(-1)
     return flattened_one_hot
 
+def decimal_to_10bit_binary(decimal_value):
+    binary_str = bin(decimal_value)[2:]
+    padded_binary_str = binary_str.zfill(10)
+    binary_list = [int(bit) for bit in padded_binary_str]
+    return binary_list
+
+def convert_vector_to_binary(flow_vector):
+    binary_representation = []
+    for val in flow_vector:
+        binary_representation.extend(decimal_to_10bit_binary(val.item()))
+    return torch.tensor(binary_representation, dtype=torch.int)
+
 
 def analyze_flows(flows):
     flow_analysis = []
@@ -199,7 +211,8 @@ def analyze_flows(flows):
 
         # 将所有字段连接在一起形成 flow_vector
         flow_vector = torch.cat([src_ip_features, dst_ip_features, src_port, dst_port, protocol])
-        flow_vector = onehot_encode(flow_vector, 1024)
+        flow_vector = convert_vector_to_binary(flow_vector)
+        # flow_vector = onehot_encode(flow_vector, 1024).to(torch.bool)
 
         remaining_features = []
 
@@ -222,8 +235,8 @@ def analyze_flows(flows):
             pkt_len = int(pkt['pkt_len'])
             
             pkt_tensor = torch.tensor([tos, ttl, _id, flag, time, pkt_len])
-
-            pkt_tensor = onehot_encode(pkt_tensor, 1024)
+            pkt_tensor = convert_vector_to_binary(pkt_tensor)
+            # pkt_tensor = onehot_encode(pkt_tensor, 1024).to(torch.bool)
 
             remaining_features.append(pkt_tensor)
 

@@ -25,7 +25,7 @@ def main(rank, world_size):
     flows, start_time, num_pkts = get_flows('caida_small.pcap')
     
     condition_dim, output_dim = get_num_attributes(flows)
-    noisy_size = 1024 * 8
+    noisy_size = 1024
     num_epochs = 200
 
     generator = Generator(noisy_size, output_dim, condition_dim).to(device)
@@ -34,7 +34,7 @@ def main(rank, world_size):
     generator = DDP(generator, device_ids=[rank])
     discriminator = DDP(discriminator, device_ids=[rank])
 
-    data_loader = get_data_loader(flows, batch_size=64, world_size=world_size, rank=rank)
+    data_loader = get_data_loader(flows, batch_size=1, world_size=world_size, rank=rank)
 
     trainer = CGANTrainer(
         generator=generator,
@@ -42,7 +42,6 @@ def main(rank, world_size):
         data_loader=data_loader,
         noisy_dim=noisy_size,
         num_epochs=num_epochs,
-        device=device
     )
 
     trainer.train()
@@ -50,5 +49,5 @@ def main(rank, world_size):
     dist.destroy_process_group()
 
 if __name__ == "__main__":
-    world_size = 6
+    world_size = torch.cuda.device_count()
     mp.spawn(main, args=(world_size,), nprocs=world_size, join=True)

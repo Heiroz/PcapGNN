@@ -4,8 +4,8 @@ import math
 import torch.nn.functional as F
 
 class Generator(nn.Module):
-    def __init__(self, noisy_size, output_size, condition_size, hidden_size=512 * 8, 
-                 num_layers=5, num_heads=8, dropout=0.1):
+    def __init__(self, noisy_size, output_size, condition_size, hidden_size=512, 
+                 num_layers=3, num_heads=2, dropout=0.1):
         super(Generator, self).__init__()
         self.noisy_size = noisy_size
         self.output_size = output_size
@@ -28,9 +28,10 @@ class Generator(nn.Module):
         encoded = self.transformer_encoder(src)
         
         generated_samples = self.fc(encoded.squeeze(1))
-        generated_samples = generated_samples.view(batch_size, -1, 1024)
-        generated_samples = F.softmax(generated_samples, dim=-1)
+        # generated_samples = generated_samples.view(batch_size, -1, 576)
+        # generated_samples = F.softmax(generated_samples, dim=-1)
         generated_samples = generated_samples.view(batch_size, -1, self.output_size)
+        generated_samples = torch.sigmoid(generated_samples)
 
 
 

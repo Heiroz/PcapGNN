@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from decode import decode_tensor
+import torch.cuda.amp as amp
+
 class CGANTrainer:
     def __init__(self, generator, discriminator, data_loader, noisy_dim, 
                  num_epochs=50, lr=0.0002, beta1=0.5, beta2=0.999):
@@ -13,6 +14,7 @@ class CGANTrainer:
         self.lr = lr
         self.beta1 = beta1
         self.beta2 = beta2
+        self.scaler = amp.GradScaler()
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.criterion = nn.BCELoss()
@@ -30,51 +32,52 @@ class CGANTrainer:
                 self.discriminator.zero_grad()
                 bs, num_generated, size = real_data.shape
                 labels_real = torch.ones(real_data.size(0) * real_data.size(1), 1, device=self.device)
-                # Generate fake data and reshape
+                
                 fake_data = []
                 for _ in range(num_generated):
-                    z = torch.randn(bs, self.z_dim, device=self.device)
+                    z = torch.randn(bs, self.noisy_dim, device=self.device)
                     sample = self.generator(z, condition_vector)
                     fake_data.append(sample)
                 fake_data = torch.stack(fake_data, dim=1)
                 fake_data = fake_data.squeeze(dim=2)
                 labels_fake = torch.zeros(fake_data.size(0) * fake_data.size(1), 1, device=self.device)
 
-                # Calculate discriminator loss
                 expanded_condition_vector = condition_vector.unsqueeze(1).repeat(1, num_generated, 1)
                 real_data = real_data.reshape(-1, real_data.shape[2])
                 fake_data = fake_data.reshape(-1, fake_data.shape[2])
                 expanded_condition_vector = expanded_condition_vector.reshape(-1, expanded_condition_vector.shape[2])
-                output_real = self.discriminator(real_data, expanded_condition_vector)
 
-                output_fake = self.discriminator(fake_data.detach(), expanded_condition_vector)
-                loss_D_real = self.criterion(output_real, labels_real)
-                loss_D_fake = self.criterion(output_fake, labels_fake)
-                loss_D = loss_D_real + loss_D_fake
-                loss_D.backward()
-                self.optimizer_D.step()
+                with amp.autocast():
+                    output_real = self.discriminator(real_data, expanded_condition_vector)
+                    output_fake = self.discriminator(fake_data.detach(), expanded_condition_vector)
+                    loss_D_real = self.criterion(output_real, labels_real)
+                    loss_D_fake = self.criterion(output_fake, labels_fake)
+                    loss_D = loss_D_real + loss_D_fake
+                
+                self.scaler.scale(loss_D).backward()
+                self.scaler.step(self.optimizer_D)
+                self.scaler.update()
                 self.generator.zero_grad()
 
-                # Re-generate fake data for generator update
                 fake_data = []
                 for _ in range(num_generated):
-                    z = torch.randn(bs, self.z_dim, device=self.device)
+                    z = torch.randn(bs, self.noisy_dim, device=self.device)
                     sample = self.generator(z, condition_vector)
                     fake_data.append(sample)
                 fake_data = torch.stack(fake_data, dim=1)
                 fake_data = fake_data.reshape(-1, self.generator.output_size)
-                output_fake = self.discriminator(fake_data, expanded_condition_vector)
-                loss_G = self.criterion(output_fake, labels_real)
-                loss_G.backward()
-                self.optimizer_G.step()
+
+                with amp.autocast():
+                    output_fake = self.discriminator(fake_data, expanded_condition_vector)
+                    loss_G = self.criterion(output_fake, labels_real)
+                
+                self.scaler.scale(loss_G).backward()
+                self.scaler.step(self.optimizer_G)
+                self.scaler.update()
 
                 if (i + 1) % 100 == 0:
                     print(f"Epoch [{epoch+1}/{self.num_epochs}], Step [{i+1}/{len(self.data_loader)}], "
                         f"Loss D: {loss_D.item():.4f}, Loss G: {loss_G.item():.4f}")
-                    # raw_data = decode_tensor(real_data, 32)
-                    # generated_data = decode_tensor(fake_data, 32)
-                    # print(f"raw_data: {raw_data}")
-                    # print(f"generated_data: {generated_data}")
 
             torch.save(self.generator.state_dict(), f'generator_epoch_{epoch+1}.pth')
             torch.save(self.discriminator.state_dict(), f'discriminator_epoch_{epoch+1}.pth')
