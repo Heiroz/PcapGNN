@@ -19,7 +19,6 @@ def extract_ports_from_pcap(file_path):
                 src_port = packet['UDP'].sport
                 dst_port = packet['UDP'].dport
             
-            # 添加源端口和目标端口到集合
             ports.update([src_port, dst_port])
 
     return list(ports)

@@ -78,7 +78,7 @@ def analyze_flows(flows):
 
     return flow_analysis
 
-def classify_pcap_split(pcap_file, split_count=200):
+def classify_pcap_split(pcap_file, split_count=8 * 1024):
     packets = rdpcap(pcap_file)
     total_packets = len(packets)
     packets_per_split = total_packets // split_count
@@ -275,7 +275,6 @@ def ip2ints(ip):
 def node_attr(G):
     ip_attrs = nx.get_node_attributes(G, 'ip')
     port_attrs = nx.get_node_attributes(G, 'port')
-    # ###################################################################################
     mapping_file = 'port_index_mapping.txt'
     port_index_mapping = read_port_index_mapping(mapping_file)
     port_attrs = map_ports_to_indices(G, port_attrs, port_index_mapping)

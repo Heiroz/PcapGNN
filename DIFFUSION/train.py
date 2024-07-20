@@ -32,7 +32,7 @@ class DistributionNodes:
         return log_p
     
 def main():
-    pcap_file = 'caida_small.pcap'
+    pcap_file = 'caida.pcap'
     # 将caida数据集切分成若干块，防止由于训练数据过大导致程序崩溃
     ip_pairs_list = classify_pcap_split(pcap_file)
     data_list = []
