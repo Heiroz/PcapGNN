@@ -73,7 +73,7 @@ def save_to_file(data, output_file):
             f.write(f"{item}\n")
 
 if __name__ == "__main__":
-    file_path = 'caida_small.pcap'
+    file_path = 'caida_large_filtered.pcap'
     output_ports_file = 'output_ports.txt'
     output_time_intervals_file = 'output_time_intervals.txt'
     output_ids_file = 'output_ids.txt'
